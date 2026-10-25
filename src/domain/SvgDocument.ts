@@ -1,24 +1,28 @@
 import { DomainError } from "./DomainError.js";
 import { NumericValue } from "./NumericValue.js";
 import type { SvgElement } from "./SvgElement.js";
+import { ViewBox } from "./ViewBox.js";
 import { Group } from "./shapes/Group.js";
 import type { Shape } from "./shapes/Shape.js";
 
 export class SvgDocument {
   private canvasWidth: number;
   private canvasHeight: number;
+  private coordinateBox: ViewBox;
   private rootNodes: readonly Shape[] = [];
   private index = new Map<string, Shape>();
   private parents = new Map<string, string | undefined>();
 
-  constructor(width = 800, height = 600, roots: readonly Shape[] = []) {
+  constructor(width = 800, height = 600, roots: readonly Shape[] = [], viewBox?: ViewBox) {
     this.canvasWidth = NumericValue.positive(width, "canvas width");
     this.canvasHeight = NumericValue.positive(height, "canvas height");
+    this.coordinateBox = viewBox ?? new ViewBox(0, 0, width, height);
     this.install(roots);
   }
 
   get width(): number { return this.canvasWidth; }
   get height(): number { return this.canvasHeight; }
+  get viewBox(): ViewBox { return this.coordinateBox; }
   get size(): number { return this.index.size; }
   get roots(): readonly Shape[] { return [...this.rootNodes]; }
 
@@ -44,6 +48,7 @@ export class SvgDocument {
     const nextHeight = NumericValue.positive(height, "canvas height");
     this.canvasWidth = nextWidth;
     this.canvasHeight = nextHeight;
+    this.coordinateBox = new ViewBox(0, 0, nextWidth, nextHeight);
   }
 
   insert(shape: Shape, parentId?: string): Shape {
@@ -123,7 +128,7 @@ export class SvgDocument {
   back(id: string): void { this.reorder(id, false); }
 
   clone(): SvgDocument {
-    return new SvgDocument(this.width, this.height, this.rootNodes);
+    return new SvgDocument(this.width, this.height, this.rootNodes, this.coordinateBox);
   }
 
   toSvgElement(): SvgElement {
@@ -132,7 +137,7 @@ export class SvgDocument {
       attributes: {
         xmlns: "http://www.w3.org/2000/svg",
         width: String(this.width), height: String(this.height),
-        viewBox: `0 0 ${this.width} ${this.height}`,
+        viewBox: this.coordinateBox.toString(),
       },
       children: this.rootNodes.map(shape => shape.toSvgElement()),
     };

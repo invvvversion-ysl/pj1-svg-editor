@@ -197,7 +197,7 @@ describe("command workflows through the real composition root", () => {
 describe("initial CLI state and create types", () => {
   it.each([
     "canvas", "create g g1", "delete r1", "move r1 1 2", "scale r1 2", "set r1 fill red",
-    "group g1 r1 r2", "ungroup g1", "addto g1 r1", "front r1", "back r1", "undo", "redo",
+    "group g1 r1 r2", "ungroup g1", "addto g1 r1", "front r1", "back r1", "undo", "redo", "save",
   ])("requires init/read before %s", async line => {
     const app = new EditorApplication();
     await expect(app.execute(line)).rejects.toThrow("no document. use 'init' or 'read' first");
@@ -205,7 +205,7 @@ describe("initial CLI state and create types", () => {
 
   it("allows help before init and ignores blank lines/comments", async () => {
     const app = new EditorApplication();
-    expect((await app.execute("help")).join("\n")).toContain("stage 4");
+    expect((await app.execute("help")).join("\n")).toContain("stage 5");
     expect(await app.execute("  ")).toEqual([]);
     expect(await app.execute("# comment")).toEqual([]);
   });

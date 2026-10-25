@@ -1,0 +1,31 @@
+# Stage 5: PJ flowchart and external SVG round trip.
+# Expected: three errors (undo/redo I/O barriers and a missing file), one assigned-id warning.
+init 800 600
+create g flowchart
+create g node1 in flowchart
+create rect start 120 100 160 60 #4a90d9 in node1
+create text start-label 155 135 "开始" in node1
+create g node2 in flowchart
+create rect process 520 100 160 60 #f5a623 in node2
+create text process-label 545 135 "处理数据" in node2
+create line arrow1 280 130 520 130 black in flowchart
+move node2 0 100
+undo
+set process-label text "处理数据 v2"
+save "examples/generated/flowchart.svg"
+undo
+read "examples/generated/flowchart.svg"
+redo
+tree flowchart
+
+# Read the exact external input from the PJ; do not overwrite the input fixture.
+read "examples/input/other.svg"
+tree
+save "examples/generated/imported.svg"
+move c1 5 0
+save
+read "examples/generated/imported.svg"
+show c1
+read "examples/input/no-such.svg"
+show c1
+save

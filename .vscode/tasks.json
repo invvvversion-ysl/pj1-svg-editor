@@ -34,6 +34,12 @@
       "problemMatcher": []
     },
     {
+      "label": "演示 SVG 文件读写",
+      "type": "npm",
+      "script": "demo:svg",
+      "problemMatcher": []
+    },
+    {
       "label": "构建 SVG 编辑器",
       "type": "npm",
       "script": "build",

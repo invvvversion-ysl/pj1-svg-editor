@@ -25,7 +25,7 @@ export class EditorSession {
     this.document = document.clone();
   }
 
-  /** Called only after a future save adapter has successfully written the file. */
+  /** Called only after the save adapter has successfully written the file. */
   markSaved(path: string): void {
     this.requireDocument();
     if (path.length === 0) throw new CommandError("save path must not be empty");

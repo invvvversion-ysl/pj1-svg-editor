@@ -12,15 +12,19 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
     "build": "tsc",
     "start": "node dist/main.js",
-    "test": "vitest run --pool=threads --maxWorkers=1 --no-file-parallelism",
+    "test": "npm run build && vitest run --pool=threads --maxWorkers=1 --no-file-parallelism",
     "demo:model": "npm run build && node examples/ModelDemo.mjs",
     "demo:commands": "npm run build && node examples/CommandDemo.mjs",
     "demo:views": "npm run build && node examples/ViewDemo.mjs",
-    "check": "npm run typecheck && npm run build && npm test"
+    "demo:svg": "npm run build && node examples/SvgDemo.mjs",
+    "check": "npm run typecheck && npm test"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.12"
   }
 }

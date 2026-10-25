@@ -11,6 +11,8 @@ import { HelpCommand } from "./application/commands/HelpCommand.js";
 import { InitCommand } from "./application/commands/InitCommand.js";
 import { MoveCommand } from "./application/commands/MoveCommand.js";
 import { RedoCommand } from "./application/commands/RedoCommand.js";
+import { ReadCommand } from "./application/commands/ReadCommand.js";
+import { SaveCommand } from "./application/commands/SaveCommand.js";
 import { ScaleCommand } from "./application/commands/ScaleCommand.js";
 import { SetAttributeCommand } from "./application/commands/SetAttributeCommand.js";
 import { ShowCommand } from "./application/commands/ShowCommand.js";
@@ -23,6 +25,9 @@ import { ShapeFactory } from "./domain/ShapeFactory.js";
 import type { SvgDocument } from "./domain/SvgDocument.js";
 import { HelpText } from "./presentation/HelpText.js";
 import { TextDocumentPresenter } from "./presentation/TextDocumentPresenter.js";
+import type { DocumentRepository } from "./application/ports/DocumentRepository.js";
+import { SvgCodec } from "./infrastructure/SvgCodec.js";
+import { SvgFileRepository } from "./infrastructure/SvgFileRepository.js";
 
 /** Composition root shared by the REPL, command demo and integration tests. */
 export class EditorApplication {
@@ -30,11 +35,14 @@ export class EditorApplication {
   private readonly history = new HistoryManager(this.session);
   private readonly registry = new CommandRegistry();
 
-  constructor() {
+  constructor(repository?: DocumentRepository) {
     const factory = new ShapeFactory();
     const presenter = new TextDocumentPresenter();
+    const files = repository ?? new SvgFileRepository(new SvgCodec(factory));
     this.registry.register("help", () => new HelpCommand(new HelpText().lines()));
     this.registry.register("init", () => new InitCommand(this.session, this.history));
+    this.registry.register("read", () => new ReadCommand(this.session, this.history, files));
+    this.registry.register("save", () => new SaveCommand(this.session, this.history, files));
     this.registry.register("canvas", () => new CanvasCommand(this.session, this.history));
     this.registry.register("tree", () => new TreeCommand(this.session, presenter));
     this.registry.register("show", () => new ShowCommand(this.session, presenter));

@@ -105,7 +105,7 @@ describe("tree/show and query history", () => {
     await expect(app.execute("undo")).rejects.toThrow("undo not allowed after io command");
   });
 
-  it("exposes all available syntax and labels read/save as future work", async () => {
+  it("exposes all available syntax including read/save", async () => {
     const empty = new EditorApplication();
     const help = (await empty.execute("help")).join("\n");
     for (const syntax of [
@@ -113,7 +113,8 @@ describe("tree/show and query history", () => {
       "scale <id> <factor>", "set <id> <attr> <value>", "group <newGid> <id1> <id2>",
       "ungroup <gid>", "addto <gid> <id>", "front <id>", "back <id>", "tree [id]", "show <id>", "undo | redo",
     ]) expect(help).toContain(syntax);
-    expect(help).toContain("Planned for stage 5 (not yet available): read <file.svg> | save [file.svg]");
+    expect(help).toContain("read <file.svg> | save [file.svg]");
+    expect(help).not.toContain("not yet available");
     await expect(empty.execute("tree")).rejects.toThrow("no document. use 'init' or 'read' first");
     await expect(empty.execute("show c1")).rejects.toThrow("no document. use 'init' or 'read' first");
   });

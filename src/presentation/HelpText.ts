@@ -1,13 +1,13 @@
 export class HelpText {
   lines(): readonly string[] {
     return [
-      "PJ1 Phase 1 — stage 4: CLI editing, history and document views",
+      "PJ1 Phase 1 — stage 5: CLI editing, history, views and SVG files",
       "Blank lines and lines starting with # are ignored.",
       'Use double quotes for spaces or empty values; inside quotes, \\" and \\\\ escape quotes and backslashes.',
       "Exit using terminal EOF (Windows: Ctrl+Z, then Enter).",
       "",
       "Available commands:",
-      "  init [w] [h] | canvas [w h] | help",
+      "  init [w] [h] | read <file.svg> | save [file.svg] | canvas [w h] | help",
       "  create <type> <id> [params...] [in <containerId>]",
       "  delete <id> | move <id> <dx> <dy> | scale <id> <factor>",
       "  set <id> <attr> <value> | group <newGid> <id1> <id2>...",
@@ -29,10 +29,12 @@ export class HelpText {
       "group keeps document order; addto appends; front/back reorder within the same parent.",
       "ungroup rejects top-level containers. tree shows a document/subtree; show lists one shape and its parent.",
       "Omitted fill/stroke remain absent and follow SVG defaults. Queries show explicit attributes.",
-      "Successful init/canvas resize clear history; undo/redo stay blocked until a successful edit.",
+      "Successful init/read/save/canvas resize clear history; undo/redo stay blocked until a successful edit.",
       "One edit is one undo unit. A successful edit after undo clears redo; queries and failures preserve it.",
       "init defaults to 800x600; canvas queries with no arguments or resizes with both width and height.",
-      "Planned for stage 5 (not yet available): read <file.svg> | save [file.svg].",
+      "read assigns missing ids with warnings. save uses the last loaded/saved path if omitted.",
+      "Files use UTF-8 XML; six built-in elements and their supported attributes round-trip.",
+      "SVG import normalizes numeric/px lengths and preserves viewBox; unsupported structures/attributes fail explicitly.",
       "Phase 1 built-ins are limited to rect, circle, ellipse, line, text and g; box is a later-stage type.",
     ];
   }
