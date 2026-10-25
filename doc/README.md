@@ -1,6 +1,6 @@
 # PJ1 Phase 1：SVG CLI 编辑器项目文档
 
-> 文档状态：第三部分（编辑命令、会话与撤销重做）已实现，等待用户审阅。前两部分已获用户同意继续。tree/show 与 SVG 文件读写尚待后续，不能视为最终验收声明。
+> 文档状态：第四部分（tree/show、帮助与查询隔离）已实现，等待用户审阅。前三部分已获用户同意继续。SVG 文件读写尚待第五部分，不能视为最终验收声明。
 
 ## 一、架构方案
 
@@ -12,18 +12,18 @@
 
 ### 2. 模块划分
 
-| 目录 | 职责 | 当前状态（第三部分） |
+| 目录 | 职责 | 当前状态（第四部分） |
 | --- | --- | --- |
 | `src/cli/` | REPL、命令输入、分词、命令名到实现的分发 | 引号分词、每次调用创建新命令、错误恢复均已实现 |
 | `src/application/` | 会话、命令执行、撤销重做、外部能力接口 | EditorSession、HistoryManager、参数校验及错误边界已实现 |
-| `src/application/commands/` | 每条命令独立的类 | 十条编辑命令、init/canvas/help/undo/redo 及 EditCommand 已实现 |
-| `src/application/ports/` | 文件和查询输出等接口 | 目录占位 |
+| `src/application/commands/` | 每条命令独立的类 | 17 条可用命令及 EditCommand 已实现，含 TreeCommand/ShowCommand |
+| `src/application/ports/` | 文件和查询输出等接口 | DocumentPresenter 查询输出接口已实现；文件端口待第五部分 |
 | `src/domain/` | 文档树、图形类层次、id 索引和树约束 | 六种图形、工厂、文档模型及模型编辑已实现 |
 | `src/infrastructure/` | 文件系统与 SVG XML 适配 | 目录占位 |
-| `src/presentation/` | tree、show、帮助文本排版 | HelpText 已更新可用命令；编辑操作的一行摘要当前由应用命令产生 |
+| `src/presentation/` | tree、show、帮助文本排版 | ShapeFormatter、TextDocumentPresenter 和完整当前命令帮助已实现；编辑摘要仍由应用命令产生 |
 | `src/main.ts`、`src/EditorApplication.ts` | 创建对象、注入依赖、启动程序 | 组合根供 REPL、演示、集成测试共用 |
-| `tests/` | 单元、集成测试和输入样例 | 五份单元测试、两份集成测试；XML 样例待后续 |
-| `examples/` | 模型演示、可回放命令及示例 SVG | ModelDemo、CommandDemo 和 stage3.txt 已实现 |
+| `tests/` | 单元、集成测试和输入样例 | 七份单元测试、三份集成测试；XML 样例待后续 |
+| `examples/` | 模型演示、可回放命令及示例 SVG | 模型、编辑与显示三个演示，以及 stage3.txt/stage4.txt |
 
 组件图的完整 PlantUML 源文件见 [architecture.puml](architecture.puml)。下图箭头表示编译期依赖，不表示运行时数据流。
 
@@ -59,6 +59,8 @@ infrastructure --> domain
 
 **Factory（第二部分已实现命令参数创建）**：ShapeFactory 通过一处 Map 选择具体类，各类自行解析自己的参数并处理几何和属性规则，调用方不按标签名重复判断。SVG 元素读入将在第五部分复用此工厂边界，目前尚未实现。
 
+**Visitor（第四部分新增）**：Shape 接受泛型 ShapeVisitor，六种具体类分别调用自己的 visit 方法；ShapeFormatter 在 presentation 实现接口，按多态入口生成类型特有的几何摘要。domain 不包含 CLI 排版或树字符，显示层也无需 switch(tag) 或类型名映射。该访问者针对当前固定六种类型，新独立类型需补充访问者方法；未来动态插件阶段再评估显示提供者接口。
+
 按名字分派仅允许两个集中位置，均标记为后续阶段待重构边界：
 
 1. 命令分发：当前 `cli/CommandRegistry.ts` 中命令名到实现的 Map；后续将固定启动注册扩展为命令提供者注册。
@@ -77,7 +79,7 @@ infrastructure --> domain
 | infrastructure | infrastructure、application 的端口、domain、Node 文件 API、XML 库 | 实现接口，把外部数据转换为模型 |
 | main/EditorApplication | 各模块公开入口 | 组合根，选择并注入具体实现；测试和 CLI 共享装配 |
 
-应用层若需要 tree/show 输出，通过 application/ports 中的查询输出接口接收适配器，避免 application 反向导入 presentation。presentation 可以实现该端口，增加的依赖仅指向 application 的接口。
+tree/show 已通过 application/ports/DocumentPresenter 接收适配器，application 不反向导入 presentation。TextDocumentPresenter 实现该端口；组合根创建并注入它。领域层的 ShapeVisitor 仅引用领域类型，编译后没有对具体显示层的依赖。
 
 禁止 domain 导入 application/cli/infrastructure/presentation，禁止 application 导入具体文件或 XML 实现，禁止 cli 越过应用层修改图形。发现违反规则的依赖时记入待处理项并修复。
 
@@ -85,7 +87,7 @@ infrastructure --> domain
 
 | 可能变化处 | 预留方式或暂不预留的理由 |
 | --- | --- |
-| 新增图形及未来 box | Shape 多态和集中工厂；本阶段不实现动态插件，避免超出范围 |
+| 新增图形及未来 box | Shape 多态与集中工厂；显示使用固定六类 Visitor，新独立类型需同步访问者。插件阶段再引入显示提供者，不承诺当前已有动态插件能力 |
 | 新增命令 | Command 接口和集中 registry，新增命令独立类 |
 | CLI 以外的 GUI/agent 入口 | 图形和命令不直接依赖终端；后续入口复用应用层 |
 | 文件来源与 XML 库变化 | 文件和编解码接口隔离具体实现 |
@@ -137,7 +139,7 @@ infrastructure --> domain
 
 ### 8. 第三部分命令与历史实现说明
 
-执行路径：`main → EditorApplication → Repl/CommandRegistry → Tokenizer → CommandExecutor → 具体 Command → HistoryManager → SvgDocument`。EditorApplication 是组合根，不是新增业务层；负责注册十五条可用命令的工厂。每次分发创建新命令实例，避免后一次执行覆盖前一次命令的撤销快照。
+编辑执行路径：`main → EditorApplication → Repl/CommandRegistry → Tokenizer → CommandExecutor → 具体 EditCommand → HistoryManager → SvgDocument`。EditorApplication 是组合根，不是新增业务层；第三部分注册十五条命令，第四部分补充查询后共十七条。每次分发创建新命令实例，避免后一次执行覆盖前一次命令的撤销快照。
 
 编辑命令的统一生命周期：
 
@@ -150,13 +152,34 @@ HistoryManager 统一管理两栈和屏障；EditorSession 管理当前文档和
 
 **历史边界**：成功 init/canvas 尺寸修改清空旧历史并设屏障，undo 和 redo 都返回作业指定的 `undo not allowed after io command`。失败编辑不能解禁。下一次成功编辑形成新的历史；撤销完新历史只会到达当前文档边界。help、canvas 无参查询、空行和注释都不改历史。移动 0 或对已在最前的节点执行 front 也是成功编辑，仍按一条命令一个单元记录。
 
-**参数与显示**：init 接受 0/1/2 个参数，缺省宽高分别取 800/600；canvas 查询不带参数，修改必须同时给出宽高。create 的尾部 in 指定父容器，text 的内容仍为单一参数，允许空文本及字面量 in。编辑结果为一行操作摘要；undo 使用 `undone:` 标明撤销的原操作，redo 回显原摘要。tree/show 的属性明细将在第四部分完成。
+**参数与显示**：init 接受 0/1/2 个参数，缺省宽高分别取 800/600；canvas 查询不带参数，修改必须同时给出宽高。create 的尾部 in 指定父容器，text 的内容仍为单一参数，允许空文本及字面量 in。编辑结果为一行操作摘要；undo 使用 `undone:` 标明撤销的原操作，redo 回显原摘要。第四部分现已补齐 tree/show 的属性明细。
 
 **分词提前实现**：为保证第三部分 create/set 文本可用，将原定第四部分的双引号分词提前。支持空参数、带空格内容、双引号内的反斜杠/引号转义；其他反斜杠保留，颜色 # 不被当成行内注释。未闭合引号直接报错，命令不会开始执行。此变更已记入过程记录。
 
 **错误边界**：领域错误由 application/CommandExecutor 转为 CommandError，CLI 只依赖应用层。REPL 为预期错误加统一 error: 前缀并继续读取，同时清除错误消息中的换行，保持一行一错。程序错误继续抛出，便于发现实现缺陷。
 
 **工程归档**：所有运行所需源码、测试、示例、文档、配置、依赖锁文件均在单一 svg-editor 文件夹。work 中仅有开发缓存，不作为运行依赖。最终打包在第六部分整理，生成内容不包含 node_modules/dist 等可重建文件；本次仅本地提交，不配置远程，不打 final 标签。
+
+### 9. 第四部分查询与显示实现说明
+
+查询执行路径：`TreeCommand/ShowCommand → DocumentPresenter 接口 → TextDocumentPresenter → ShapeFormatter/ShapeVisitor`。命令先确认文档存在、参数个数及目标 id，再把当前文档的深复制交给显示适配器；它们实现普通 Command，没有 HistoryManager 依赖，不创建历史项。
+
+| 能力 | 具体输出规则 |
+| --- | --- |
+| tree | 首行为 svg (宽x高)，按子节点绘制顺序递归；使用 ├──、└──、│ 和缩进表示层级 |
+| tree id | 以指定图形为首行，不保留原树的前导缩进；叶子仅一行，空组仅显示自身 |
+| 图形摘要 | rect 显示 x/y/w/h；circle 显示 cx/cy/r；ellipse 显示 cx/cy/rx/ry；line 显示端点箭头；text 显示坐标及引用文本 |
+| show id | 首行为类型、id 和直接父级；根级图形为 parent=svg，嵌套图形为 parent=g#id；随后列出完整几何字段名、文本和显式样式 |
+| 容器信息 | show 额外列出直接 children 数量，空组为 0；tree 内联组自身的显式样式 |
+| 样式与文本 | 样式按 fill、stroke、stroke-width 的稳定顺序显示；不计算继承值，不补写省略的默认样式；空文本显示双引号空串 |
+
+树中图形标签与字段使用单个空格分隔，不依赖不同终端对中文 id 的字符宽度估计。show 使用两空格缩进。文本和包含空白的样式值使用 JSON 风格引用，换行、引号、反斜杠及 Unicode 行分隔符均转义，保持树的一行对应一个图形。
+
+ShapeFormatter 的摘要由访问者多态实现，明细从封装模型的属性副本读取；类型名仅用于显示标签，不参与新增条件分派。DocumentPresenter 接口使应用层只依赖抽象；显示适配器仅返回字符串，不直接访问终端。
+
+查询快照提供额外隔离：即使格式化器误改输入文档或随后抛出领域错误，真实会话、路径和 redo 仍保持不变。总查询成本包含 O(N) 的文档深复制；对子树也复制全文档，以简单、可验证的隔离为优先，未来大文档再考虑只读模型视图。
+
+help 已补齐十七条可用命令、六种 create 参数、set 白名单、分词/默认值/变换/分组/查询/历史规则；read/save 语法列入第五部分计划区域，避免把尚未实现的能力显示为可用。
 
 ## 二、过程记录
 
@@ -200,11 +223,22 @@ HistoryManager 统一管理两栈和屏障；EditorSession 管理当前文档和
 - 将组合逻辑从 main.ts 提取到根目录的 EditorApplication 类，避免测试自行复制命令注册表；生产 REPL、演示和集成测试共用装配。
 - 验证每条编辑的整步 undo/redo、连续同类命令、跨父级分组、子树删除恢复、失败后保留 redo、成功编辑分叉和 I/O 屏障。read/save 只验证预留成功钩子，实际文件处理仍待第五部分。
 - 演示与真实 CLI 均回放 stage3.txt，预期五条错误后继续运行；最终矩形和画布状态由独立集成测试核对。
-- 完成后仍停下来供用户审阅；不进入第四部分，不推送远程。
+- 第三部分交付后停止供用户审阅；用户随后回复“ok，继续第四部分”，据此进入查询与显示实现，仍不推送远程。
+
+### 2026-10-25：第四部分，结构与属性显示
+
+- 用户同意继续第四部分，保持阶段审阅和单文件夹、本地 Git 的约定。
+- 引入 ShapeVisitor 领域接口及六种图形的 accept 方法，在 presentation 实现 ShapeFormatter，避免为了输出格式新增 switch(tag) 或按类型名判断。
+- 通过 application/ports/DocumentPresenter 注入 TextDocumentPresenter；应用层不导入显示实现，TreeCommand/ShowCommand 也不接触历史管理器。
+- 将文档副本交给显示接口，并用“显示器修改输入后抛错”的测试确认查询隔离；成功查询、失败查询分别验证 undo、redo 和 I/O 屏障不变。
+- 检查多层树的竖线与最后分支、干净子树缩进、六种几何摘要、真实父级、空组、空文本和显式样式；对行分隔符进行转义，避免文本内容破坏树结构。
+- 更新 help 的完整当前语法和 set 白名单，read/save 仍明确标为后续功能。
+- 新增 stage4.txt 和 ViewDemo，在演示程序和真实 CLI 中回放，确认撤销后查询不清空 redo，circle 的 cx 显示为 100、100、130。
+- 10 个测试文件共 294 项测试及类型检查、构建通过；完成后停止等待本部分审阅。
 
 ## 三、一致性自查
 
-当前检查覆盖前三部分，最终实现后继续逐项复查：
+当前检查覆盖前四部分，最终实现后继续逐项复查：
 
 | 项目 | 当前事实 | 后续检查 |
 | --- | --- | --- |
@@ -214,8 +248,9 @@ HistoryManager 统一管理两栈和屏障；EditorSession 管理当前文档和
 | Composite | 叶子与嵌套组使用同一套命令；命令集成测试通过 | 最终案例验证 |
 | 两处分派 | CommandRegistry 与 ShapeFactory 两处已存在；生产代码未发现 switch 或按 type 的判断分派 | 后续命令和 XML 接入后复查 |
 | 一类一文件 | 当前类各有独立同名文件 | 逐阶段检查 |
+| 查询输出接口 | 应用层仅依赖 DocumentPresenter，显示实现由组合根注入 | SVG 文件接口接入后继续检查边界 |
 
-修订记录：第一部分把 Command 定位为调用接口，第三部分现已补齐撤销契约。第二部分在 domain 内新增 GeometryShape、数值/参数校验和输出 DTO，采用替换树并重建索引。第三部分提前实现 Tokenizer，并把组合根提取为 EditorApplication 以共享装配；十五条命令和应用服务仍处于计划模块中。文档已明确编辑命令当前产出一行摘要，presentation 管理帮助与后续结构查询格式。组件图与规则表同步补充组合根对 domain 工厂的依赖。所有这些变更均未引入向外层的业务依赖。
+修订记录：第一部分把 Command 定位为调用接口，第三部分补齐撤销契约。第二部分在 domain 内新增 GeometryShape、数值/参数校验和输出 DTO，采用替换树并重建索引。第三部分提前实现 Tokenizer，把组合根提取为 EditorApplication。第四部分在既定 presentation/ports 内实现查询，并在 domain 增加 Visitor 类型接口；固定六类显示扩展的成本已写入变化点假设。编辑摘要由应用层产出，presentation 负责帮助与结构查询格式。组件图与规则表保持一致，均未引入业务模块向外层的依赖。
 
 ## 四、功能完整性与质量保证手段
 
@@ -225,16 +260,16 @@ HistoryManager 统一管理两栈和屏障；EditorSession 管理当前文档和
 | --- | --- |
 | REPL、svg>、help、空行、整行注释、错误后继续读取 | 第一部分实现，后台终端冒烟验证通过 |
 | 六种图形、文档模型、树约束 | 第二部分完成，已获用户同意继续 |
-| 编辑命令、会话、历史、失败回滚、init/canvas | 第三部分完成，验证通过，等待用户审阅 |
-| 分词与帮助 | 双引号分词提前完成；帮助区分可用与计划命令 |
-| tree/show | 第四部分计划 |
+| 编辑命令、会话、历史、失败回滚、init/canvas | 第三部分完成，已获用户同意继续 |
+| 分词与帮助 | 分词在第三部分完成；第四部分补齐当前帮助 |
+| tree/show | 第四部分完成，294 项总测试验证通过，等待用户审阅 |
 | SVG 文件读写、缺 id 补齐、示例 | 第五部分计划 |
 | 最终验收、远程提交、final 标签 | 第六部分计划 |
 
 ### 2. 计划中的验证手段
 
 - 编译期：strict、noUncheckedIndexedAccess、exactOptionalPropertyTypes 等检查，构建与源码运行分别验证。
-- 已使用 Vitest 验证模型、分词、命令及历史，并回放交付示例；源码及测试分别通过严格类型检查。文件与完整案例验收留到后续阶段。
+- 已使用 Vitest 验证模型、分词、命令、历史、显示格式和查询隔离，并回放交付示例；源码及测试分别通过严格类型检查。文件与完整案例验收留到后续阶段。
 - 单元验证：六种几何、属性白名单、唯一 id、嵌套结构、环检测、顺序保持。
 - 历史验证：每种编辑命令一个撤销单元、redo 分叉、失败状态不变、I/O 屏障。
 - 集成验证：真实 CLI 输入输出、带空格文本、颜色与注释、作业案例脚本。
@@ -303,3 +338,18 @@ HistoryManager 统一管理两栈和屏障；EditorSession 管理当前文档和
 | 架构与文件自查 | domain 只依赖自身；application 不导入 CLI/具体 IO；CLI 不导入 domain；无新增图形类型分派 |
 | 单文件夹与 Git | 源码/测试/示例/文档/配置均在 svg-editor，本次只做本地提交 |
 | 未包含范围 | VS Code 界面快捷键未验证；tree/show、SVG 读写及最终打包尚未实现 |
+
+### 7. 第四部分检查记录（2026-10-25）
+
+| 检查 | 结果与边界 |
+| --- | --- |
+| `npm run check` | 通过：源码及测试严格类型检查、构建、10 个测试文件共 294 项测试 |
+| 格式化单元测试 | 六种图形、克隆后的多态、完整几何名、样式顺序、继承与默认值、特殊字符均通过 |
+| 文档显示测试 | 多层连接线、全文档/子树/叶子/空树/空组、父级和文本明细均通过 |
+| 查询历史测试 | 正常或失败的 tree/show 不改文档、undo/redo 或历史屏障；不使用缓存的旧图形引用 |
+| 适配器隔离测试 | 格式化器修改副本后抛错或正常返回，真实文档、路径和 redo 均不变 |
+| 帮助完整性 | 当前十七条命令及语法可查；read/save 明确列为第五部分计划 |
+| `npm run demo:views` | 通过，无错误；撤销后查询保留 redo，circle 的 cx 最终恢复 130，空标题可见 |
+| 真实 CLI 回放 | UTF-8 stage4.txt 经 stdin 输入 node dist/main.js，通过，树字符及中文正常，EOF 退出码 0 |
+| 架构自查 | 应用层通过端口依赖显示，domain 不依赖显示；无新增按图形类型名分派，类名与文件名一致 |
+| 未包含范围 | SVG 文件读写、最终归档/远程推送仍待后续；VS Code 界面快捷键未验证 |

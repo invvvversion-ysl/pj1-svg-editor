@@ -24,7 +24,8 @@ note bottom of Domain
 end note
 note bottom of App
   Current: commands / session / history.
-  Planned: output/file ports, with adapters
+  Current: DocumentPresenter output port.
+  Planned: file ports, with adapters
   injected in the composition root.
 end note
 @enduml
