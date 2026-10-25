@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "检查 TypeScript",
+      "type": "npm",
+      "script": "typecheck",
+      "problemMatcher": ["$tsc"],
+      "group": "test"
+    },
+    {
+      "label": "构建 SVG 编辑器",
+      "type": "npm",
+      "script": "build",
+      "problemMatcher": ["$tsc"],
+      "group": { "kind": "build", "isDefault": true }
+    }
+  ]
+}

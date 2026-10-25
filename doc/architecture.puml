@@ -1,0 +1,28 @@
+@startuml
+title PJ1 Phase 1 — planned component dependencies
+skinparam componentStyle rectangle
+component "main\ncomposition root" as Main
+component "cli\nREPL / tokenizer / registry" as Cli
+component "application\ncommands / session / history / ports" as App
+component "domain\ndocument / shape composite / factory" as Domain
+component "presentation\ntree / show / help formatting" as Presentation
+component "infrastructure\nfile system / SVG XML codec" as Infra
+Main --> Cli
+Main --> App
+Main --> Presentation
+Main --> Infra
+Cli --> App
+App --> Domain
+Presentation --> Domain
+Presentation --> App : implements output ports
+Infra --> App : implements ports
+Infra --> Domain
+note bottom of Domain
+  No Node.js, terminal, XML library,
+  application or infrastructure imports.
+end note
+note bottom of App
+  Commands use output/file interfaces.
+  Concrete adapters are injected in main.
+end note
+@enduml

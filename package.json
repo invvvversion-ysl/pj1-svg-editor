@@ -1,0 +1,21 @@
+{
+  "name": "pj1-svg-editor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PJ1 Phase 1: an object-oriented SVG command-line editor",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "cli": "npm run build && node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "check": "npm run typecheck && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^7.0.2"
+  }
+}
