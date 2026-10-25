@@ -14,6 +14,8 @@ export class Repl {
       crlfDelay: Infinity,
       prompt: "svg> ",
     });
+    let closed = false;
+    terminal.once("close", () => { closed = true; });
 
     stdout.write("svg-editor 0.1 — type 'help' for commands\n");
     terminal.prompt();
@@ -31,7 +33,8 @@ export class Repl {
           }
           stdout.write(`error: ${error.message.replace(/[\r\n\u2028\u2029]/gu, " ")}\n`);
         }
-        terminal.prompt();
+        // EOF can arrive while an async read/save is pending. Drain queued lines without reopening input.
+        if (!closed) terminal.prompt();
       }
     } finally {
       terminal.close();
