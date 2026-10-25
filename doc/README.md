@@ -1,6 +1,6 @@
 # PJ1 Phase 1：SVG CLI 编辑器项目文档
 
-> 文档状态：第四部分（tree/show、帮助与查询隔离）已实现，等待用户审阅。前三部分已获用户同意继续。SVG 文件读写尚待第五部分，不能视为最终验收声明。
+> 文档状态：第五部分（SVG 读写与完整案例）已实现，等待用户审阅。前四部分已获用户同意继续。功能命令均已接入，但最终一致性审计、归档、远程推送和 final 标签仍留到第六部分，不能视为提交已完成。
 
 ## 一、架构方案
 
@@ -12,18 +12,18 @@
 
 ### 2. 模块划分
 
-| 目录 | 职责 | 当前状态（第四部分） |
+| 目录 | 职责 | 当前状态（第五部分） |
 | --- | --- | --- |
-| `src/cli/` | REPL、命令输入、分词、命令名到实现的分发 | 引号分词、每次调用创建新命令、错误恢复均已实现 |
+| `src/cli/` | REPL、命令输入、分词、命令名到实现的分发 | 引号分词、独立命令、错误恢复、异步 IO 后的 EOF 处理均已实现 |
 | `src/application/` | 会话、命令执行、撤销重做、外部能力接口 | EditorSession、HistoryManager、参数校验及错误边界已实现 |
-| `src/application/commands/` | 每条命令独立的类 | 17 条可用命令及 EditCommand 已实现，含 TreeCommand/ShowCommand |
-| `src/application/ports/` | 文件和查询输出等接口 | DocumentPresenter 查询输出接口已实现；文件端口待第五部分 |
-| `src/domain/` | 文档树、图形类层次、id 索引和树约束 | 六种图形、工厂、文档模型及模型编辑已实现 |
-| `src/infrastructure/` | 文件系统与 SVG XML 适配 | 目录占位 |
+| `src/application/commands/` | 每条命令独立的类 | 19 条命令及 EditCommand 已实现，含 ReadCommand/SaveCommand |
+| `src/application/ports/` | 文件和查询输出等接口 | DocumentPresenter、DocumentRepository 接口及 LoadedDocument 返回 DTO |
+| `src/domain/` | 文档树、图形类层次、id 索引和树约束 | 六种图形、统一工厂、文档模型及不可变 ViewBox 值对象 |
+| `src/infrastructure/` | 文件系统与 SVG XML 适配 | SvgCodec、SvgIdAllocator、SvgFileRepository 已实现 |
 | `src/presentation/` | tree、show、帮助文本排版 | ShapeFormatter、TextDocumentPresenter 和完整当前命令帮助已实现；编辑摘要仍由应用命令产生 |
 | `src/main.ts`、`src/EditorApplication.ts` | 创建对象、注入依赖、启动程序 | 组合根供 REPL、演示、集成测试共用 |
-| `tests/` | 单元、集成测试和输入样例 | 七份单元测试、三份集成测试；XML 样例待后续 |
-| `examples/` | 模型演示、可回放命令及示例 SVG | 模型、编辑与显示三个演示，以及 stage3.txt/stage4.txt |
+| `tests/` | 单元、集成测试和输入样例 | 九份单元测试、五份集成测试；错误 SVG 样例和受限临时目录辅助类 |
+| `examples/` | 模型演示、可回放命令及示例 SVG | 四个演示、stage3/4/5 脚本、PJ 输入 SVG、生成 SVG 和预览快照 |
 
 组件图的完整 PlantUML 源文件见 [architecture.puml](architecture.puml)。下图箭头表示编译期依赖，不表示运行时数据流。
 
@@ -51,13 +51,13 @@ infrastructure --> domain
 
 ### 3. 设计模式选择及落地计划
 
-**Command（第三部分已实现）**：每次输入创建一个命令对象。十条编辑命令继承 EditCommand，具体 edit 方法只操作传入的候选文档。HistoryManager 作为调用者记录完成的命令，撤销/重做调用命令的 undo/redo，命令内部保存私有快照。CLI 不修改图形模型。init/canvas/help/undo/redo 使用普通 Command，不混入编辑历史。
+**Command（第三部分已实现，第五部分补齐文件命令）**：每次输入创建一个命令对象。十条编辑命令继承 EditCommand，具体 edit 方法只操作候选文档。HistoryManager 记录完成的命令，undo/redo 调用命令的私有快照。init/read/save/canvas、显示和历史控制使用普通 Command，不混入编辑栈；read/save 在 IO 成功后才清空历史。
 
 **Composite（第二部分已实现）**：抽象 Shape 提供统一操作；GeometryShape 负责几何字段的校验与变换，五种叶子配置自己的字段与位置/尺寸规则；Group 提供子树。Shape 的变换遍历对所有节点进行多态预计算，通过后才统一应用。文档根是结构容器，不作为可供用户删除或分组的普通图形。
 
 **Memento（第三部分已实现）**：每个 EditCommand 保存编辑前后的独立模型快照，快照不直接暴露。undo/redo 返回新的深复制文档，包含层级、顺序、属性和重建的 id 索引。失败不入栈；undo 后成功新编辑清空 redo。单个文档快照时间和空间为 O(N)，K 条历史约 O(KN)，大文档优化留到有实际需求时。
 
-**Factory（第二部分已实现命令参数创建）**：ShapeFactory 通过一处 Map 选择具体类，各类自行解析自己的参数并处理几何和属性规则，调用方不按标签名重复判断。SVG 元素读入将在第五部分复用此工厂边界，目前尚未实现。
+**Factory（第二部分创建，第五部分复用读入）**：ShapeFactory 仍只有一处类型 Map，每项提供命令参数创建和空实例创建。fromElement 用空实例的多态属性白名单恢复字段，通过 isContainer/textContent 能力处理子树和文本，不在 XML 适配器增加图形类型判断。数值 px 在输入边界规范化，CLI set 的既有严格数值规则保持不变。
 
 **Visitor（第四部分新增）**：Shape 接受泛型 ShapeVisitor，六种具体类分别调用自己的 visit 方法；ShapeFormatter 在 presentation 实现接口，按多态入口生成类型特有的几何摘要。domain 不包含 CLI 排版或树字符，显示层也无需 switch(tag) 或类型名映射。该访问者针对当前固定六种类型，新独立类型需补充访问者方法；未来动态插件阶段再评估显示提供者接口。
 
@@ -81,6 +81,8 @@ infrastructure --> domain
 
 tree/show 已通过 application/ports/DocumentPresenter 接收适配器，application 不反向导入 presentation。TextDocumentPresenter 实现该端口；组合根创建并注入它。领域层的 ShapeVisitor 仅引用领域类型，编译后没有对具体显示层的依赖。
 
+read/save 通过 application/ports/DocumentRepository 访问文件；组合根注入 SvgFileRepository 和 SvgCodec。XML 库与 Node 文件 API 全部处于 infrastructure。LoadedDocument 是 IO 返回 DTO，不替代有行为的领域模型。
+
 禁止 domain 导入 application/cli/infrastructure/presentation，禁止 application 导入具体文件或 XML 实现，禁止 cli 越过应用层修改图形。发现违反规则的依赖时记入待处理项并修复。
 
 ### 5. 变化点假设
@@ -90,14 +92,14 @@ tree/show 已通过 application/ports/DocumentPresenter 接收适配器，applic
 | 新增图形及未来 box | Shape 多态与集中工厂；显示使用固定六类 Visitor，新独立类型需同步访问者。插件阶段再引入显示提供者，不承诺当前已有动态插件能力 |
 | 新增命令 | Command 接口和集中 registry，新增命令独立类 |
 | CLI 以外的 GUI/agent 入口 | 图形和命令不直接依赖终端；后续入口复用应用层 |
-| 文件来源与 XML 库变化 | 文件和编解码接口隔离具体实现 |
+| 文件来源与 XML 库变化 | 应用层使用 DocumentRepository；文件适配器组合 SvgCodec。替换 XML 库只修改 infrastructure，不增加未使用的通用插件层 |
 | 撤销存储方式 | 历史管理统一入口，快照可改为差量；不提前引入持久历史 |
 | tree/show 排版 | presentation 独立，模型不拼接 CLI 树字符 |
 | 完整 SVG 标准兼容 | 本阶段限定输入子集，暂不设计完整 CSS、路径和变换引擎 |
 
 ### 6. 关键语义与待确认细节
 
-以下为审核方案沿用的实现约定。第三部分已落实模型、命令会话及 init/canvas 历史规则；read/save 相关规则待第五部分：
+以下为审核方案沿用并已在前五部分落实的实现约定；SVG 导入支持范围在第十节详细列明：
 
 - id 全局唯一、大小写敏感。读入时先收集显式 id，再生成不冲突的“标签名+序号”；成功加载后打印补 id 警告。
 - 编辑失败不改变文档、历史、保存路径等状态。读入先构造候选文档，通过校验后整体替换。
@@ -109,7 +111,7 @@ tree/show 已通过 application/ports/DocumentPresenter 接收适配器，applic
 - front 将节点移至同级列表末尾，back 移至开头，符合 SVG 绘制顺序。
 - 成功的 init/read/save/canvas 尺寸修改清空历史并设屏障；undo/redo 输出指定禁用错误，直到下一次成功编辑开始新的历史。失败操作和查询不改变历史。
 - save 指定新路径成功后更新当前保存路径。无参数且没有路径时给出用法错误。
-- 只保证六种元素及规定属性的读写。未知且会影响结果的结构、属性或变换明确报错，不静默丢弃；完整 transform/CSS 等支持不纳入默认范围。最终支持子集须在第五部分落实并列明。
+- 只保证六种元素及规定属性的读写。未知结构、属性或变换明确报错，不静默丢弃；完整 transform/CSS 不纳入本阶段支持范围。新增 ViewBox 值对象保存外部文档的坐标范围。
 - # 只有在一行的首个非空白字符位置才表示注释，颜色 #4a90d9 是普通参数。双引号参数由后续独立分词器处理。
 
 ### 7. 第二部分模型实现说明
@@ -135,7 +137,7 @@ tree/show 已通过 application/ports/DocumentPresenter 接收适配器，applic
 
 **复杂度取舍**：完整深复制和索引重建为 O(N)，快照不共享可变状态。结构重建暂以易验证为目标，嵌套替换可能重复复制祖先子树，最坏约 O(N×H)，H 为树高；后续确有大文档需求时再优化，不提前引入共享可变树和索引同步机制。
 
-**阶段演进**：上述模型方法在第二部分先独立实现，第三部分现已用 Command 接入 CLI，并加入会话、历史与撤销屏障。toSvgElement 仍只是结构化表示，当前不会读写 SVG 文件。
+**阶段演进**：模型在第二部分先独立实现，第三部分用 Command 接入 CLI 和历史；toSvgElement 产生结构化表示，第五部分由 SvgCodec 转换为真正 XML 文件。领域模型仍不直接读写文件。
 
 ### 8. 第三部分命令与历史实现说明
 
@@ -148,7 +150,7 @@ tree/show 已通过 application/ports/DocumentPresenter 接收适配器，applic
 3. 成功后命令保存前后快照，会话接收其副本，再入 undo 栈、清空 redo、解除屏障。
 4. undo/redo 从栈顶命令取得快照副本，成功替换会话文档后才移动栈项。redo 恢复快照而不重新解析或执行用户输入。
 
-HistoryManager 统一管理两栈和屏障；EditorSession 管理当前文档和保存路径。普通编辑不能修改路径，init 成功会清空路径。为第五部分预留 openDocument/markSaved/resetAfterIo 的成功后调用点；本次只在测试中模拟保存成功后的钩子，不声称已有 SVG 文件保存功能。
+HistoryManager 统一管理两栈和屏障；EditorSession 管理当前文档和保存路径。普通编辑不能修改路径，init 成功清空路径。第三部分预留的 openDocument/markSaved/resetAfterIo 钩子，现已由真正的 ReadCommand/SaveCommand 在 IO 成功后使用。
 
 **历史边界**：成功 init/canvas 尺寸修改清空旧历史并设屏障，undo 和 redo 都返回作业指定的 `undo not allowed after io command`。失败编辑不能解禁。下一次成功编辑形成新的历史；撤销完新历史只会到达当前文档边界。help、canvas 无参查询、空行和注释都不改历史。移动 0 或对已在最前的节点执行 front 也是成功编辑，仍按一条命令一个单元记录。
 
@@ -179,7 +181,35 @@ ShapeFormatter 的摘要由访问者多态实现，明细从封装模型的属�
 
 查询快照提供额外隔离：即使格式化器误改输入文档或随后抛出领域错误，真实会话、路径和 redo 仍保持不变。总查询成本包含 O(N) 的文档深复制；对子树也复制全文档，以简单、可验证的隔离为优先，未来大文档再考虑只读模型视图。
 
-help 已补齐十七条可用命令、六种 create 参数、set 白名单、分词/默认值/变换/分组/查询/历史规则；read/save 语法列入第五部分计划区域，避免把尚未实现的能力显示为可用。
+第四部分补齐十七条命令的帮助；第五部分现已把 read/save 转入可用区域，加入缺 id、默认保存路径、UTF-8 和 SVG 子集说明。总共十九条命令均可查到语法。
+
+### 10. 第五部分 SVG 文件实现说明
+
+读入路径：`ReadCommand → DocumentRepository.load → SvgFileRepository → SvgCodec → SvgIdAllocator/ShapeFactory → SvgDocument`。保存路径反向使用文档的结构化表示，由通用 XML 写入器处理元素与属性；没有新增按图形标签名选择具体类的分派位置。
+
+**读取事务**：先读文件并严格解码 UTF-8，再用 @xmldom/xmldom 严格解析 XML；任何解析 warning/error 都终止读取，避免解析器自动修复后偷偷丢数据。随后校验 SVG 根、命名空间、属性和模型约束。所有显式 id 先加入保留集合，再按前序遍历分配“标签名+序号”；空 id 按缺失处理。只有新文档全部构造成功后，才替换会话、记住路径、清空历史并返回补 id 警告。
+
+**保存事务**：先完成 XML 内容校验和序列化，再在目标同目录以排他方式创建随机临时文件，写完并关闭后通过 rename 替换目标。失败不把新路径记入会话，也不清空历史；临时文件会尽力清理。实际测试覆盖目标是目录、父目录不存在及序列化失败，并验证原文件内容与 redo 均保留。无参数 save 使用最近成功 read/save 的路径；无可用路径时给出明确错误。
+
+**文本往返**：使用 XMLSerializer 编码属性与文本，处理 &、尖括号和引号；text 内容始终是子文本，拒绝 XML 的 text 属性别名。保留文本空白、中文、emoji 及 Unicode 行分隔符。采用 XML 1.0 的换行规则，文本中的 CR 保存为字符引用，避免再次读入时变成 LF。样式值中的控制空白由 XML 编码器处理。非法 XML 字符在写文件前拒绝。
+
+**坐标范围**：ViewBox 值对象保存有限起点和正宽高，纳入文档克隆及历史快照；外部 viewBox 与画布尺寸不同也能保存再读回。canvas 修改按原有约定重新建立 0 0 w h 的坐标范围。缺宽/高时先用 viewBox 对应尺寸，否则分别使用 800/600。
+
+| 范围 | 已实现的支持或处理 |
+| --- | --- |
+| 编码/语法 | UTF-8、XML 1.0、严格 XML、标准或省略 SVG 命名空间；前缀在读入后规范化 |
+| 根属性 | width、height、viewBox；命名空间声明；其他根属性明确拒绝 |
+| 图形 | rect/circle/ellipse/line/text/g，任意层级组合和原绘制顺序 |
+| 图形属性 | id、fill、stroke、stroke-width，以及对应类型几何白名单；text 内容为字符数据/CDATA |
+| 长度 | 数字与 px 规范化为数字；不接受 %、cm 等依赖外部单位环境的值 |
+| 缺省值 | 图形缺几何字段按 SVG 的 0 值建立；省略 fill/stroke 继续省略，不改成显式默认样式 |
+| id | 全局、大小写敏感；先保留所有显式值，再补缺失值；重复或非法显式 id 拒绝 |
+| 非显示信息 | XML 声明和注释可读取，注释不保留；保存重新排版，保证支持子集的语义往返 |
+| 不支持项 | path/tspan/transform/CSS/style/font-size/xml:space、其他命名空间属性、DTD/外部样式声明及额外根属性，全部明确拒绝 |
+
+这是已审核方案中的六类 SVG 编辑子集，不是完整 SVG 标准兼容器；不静默接受并丢弃不支持的数据。box 仍是后续阶段类型，本阶段 create box 按题目要求报未知类型。
+
+**异步 CLI 修正**：真实管道回放发现，输入 EOF 可在异步 save 期间先关闭 readline；旧循环随即调用 prompt 导致 ERR_USE_AFTER_CLOSE。现通过 close 事件记录状态，关闭后只处理已排队命令，不再请求提示符。新增真实 Node 子进程测试，验证读/写后续命令、错误恢复和无末尾换行的最后一行均完整执行。npm test 现在先构建，保证这些进程测试在干净检出后也有 dist 入口。
 
 ## 二、过程记录
 
@@ -234,11 +264,24 @@ help 已补齐十七条可用命令、六种 create 参数、set 白名单、分
 - 检查多层树的竖线与最后分支、干净子树缩进、六种几何摘要、真实父级、空组、空文本和显式样式；对行分隔符进行转义，避免文本内容破坏树结构。
 - 更新 help 的完整当前语法和 set 白名单，read/save 仍明确标为后续功能。
 - 新增 stage4.txt 和 ViewDemo，在演示程序和真实 CLI 中回放，确认撤销后查询不清空 redo，circle 的 cx 显示为 100、100、130。
-- 10 个测试文件共 294 项测试及类型检查、构建通过；完成后停止等待本部分审阅。
+- 第四部分交付时 10 个文件、294 项测试通过并停止审阅；用户随后同意第五部分并提醒遵守 PJ 要求。
+
+### 2026-10-25：第五部分，SVG 读写与完整案例
+
+- 重新阅读 PJ 文件，核对 TypeScript/OOP、一类一文件、两处分派、六种类型、id 警告、错误原子性、历史屏障和文档要求；未把后续 box 当作本阶段必做项。
+- 添加 DocumentRepository 端口、ReadCommand/SaveCommand 和 infrastructure 实现，XML 读取复用同一 ShapeFactory，输出继续使用多态结构化表示。
+- 先扫描全部显式 id 再补缺失值，加入“未命名元素之前出现、同名显式 id 在后面”的碰撞测试；失败读取不打印部分补 id 警告。
+- 核对 XML 库类型和源码后使用严格错误回调，并按 XML 1.0 处理行结束符；加入包含 CR/LF、Unicode 行分隔符、字符引用和中文的往返测试。
+- 增加 ViewBox 值对象，避免读入外部坐标范围后被原有默认 viewBox 覆盖；快照克隆和编辑历史也纳入验证。
+- 严格类型检查发现 Vitest 参数化测试把数组参数当作可变元组展开，调整为具名 args 对象后通过；未降低编译检查等级。
+- 应用层测试和演示通过后，真实 CLI 管道回放发现异步 save 与 EOF 的提示符竞态；修复 Repl，并添加实际 Node 子进程回归，之后重新通过完整检查与 PJ 脚本回放。
+- 文件系统测试使用工程内受限临时目录，清理前检查解析后的绝对路径，正常运行不修改输入样例。
+- 浏览器 file URL 预览被当前工具策略拦截，未改用浏览器变通路径；使用本地 resvg 渲染器生成 PNG 并目视检查流程图。该渲染器只是 work 中的一次性 QA 工具，不是运行项目的外部依赖。
+- 14 个测试文件共 368 项测试通过，PJ 典型会话和八元素流程图均验收；等待本阶段用户审阅，远程与 final 标签保持延后。
 
 ## 三、一致性自查
 
-当前检查覆盖前四部分，最终实现后继续逐项复查：
+当前检查覆盖前五部分，第六部分将进行最终审计与交付检查：
 
 | 项目 | 当前事实 | 后续检查 |
 | --- | --- | --- |
@@ -249,8 +292,10 @@ help 已补齐十七条可用命令、六种 create 参数、set 白名单、分
 | 两处分派 | CommandRegistry 与 ShapeFactory 两处已存在；生产代码未发现 switch 或按 type 的判断分派 | 后续命令和 XML 接入后复查 |
 | 一类一文件 | 当前类各有独立同名文件 | 逐阶段检查 |
 | 查询输出接口 | 应用层仅依赖 DocumentPresenter，显示实现由组合根注入 | SVG 文件接口接入后继续检查边界 |
+| 文件接口 | 应用层只依赖 DocumentRepository；Node/XML 依赖均在 infrastructure | 最终审计中再次核对 |
+| SVG 分派 | XML 层只处理语法、根验证和节点类别，图形类选择仍只有 ShapeFactory Map | 不把 XML 节点分类误作图形名字分派 |
 
-修订记录：第一部分把 Command 定位为调用接口，第三部分补齐撤销契约。第二部分在 domain 内新增 GeometryShape、数值/参数校验和输出 DTO，采用替换树并重建索引。第三部分提前实现 Tokenizer，把组合根提取为 EditorApplication。第四部分在既定 presentation/ports 内实现查询，并在 domain 增加 Visitor 类型接口；固定六类显示扩展的成本已写入变化点假设。编辑摘要由应用层产出，presentation 负责帮助与结构查询格式。组件图与规则表保持一致，均未引入业务模块向外层的依赖。
+修订记录：第一部分定义 Command，第三部分补齐撤销契约。第二部分补充 GeometryShape 与数值/参数校验，第三部分提前实现 Tokenizer 并提取组合根，第四部分用端口与 Visitor 实现查询。第五部分在既定 infrastructure/ports 中实现文件读写，新增领域 ViewBox 值对象；未单独建立无实际用途的通用编解码端口，文件适配器内部组合具体 SvgCodec 即可。Node/XML 仍未进入 domain/application，模块和依赖方向与方案一致。所有偏差及代价均已记录在相应过程与变化点假设中。
 
 ## 四、功能完整性与质量保证手段
 
@@ -261,15 +306,15 @@ help 已补齐十七条可用命令、六种 create 参数、set 白名单、分
 | REPL、svg>、help、空行、整行注释、错误后继续读取 | 第一部分实现，后台终端冒烟验证通过 |
 | 六种图形、文档模型、树约束 | 第二部分完成，已获用户同意继续 |
 | 编辑命令、会话、历史、失败回滚、init/canvas | 第三部分完成，已获用户同意继续 |
-| 分词与帮助 | 分词在第三部分完成；第四部分补齐当前帮助 |
-| tree/show | 第四部分完成，294 项总测试验证通过，等待用户审阅 |
-| SVG 文件读写、缺 id 补齐、示例 | 第五部分计划 |
+| 分词与帮助 | 完成；19 条命令与 SVG 导入范围可查 |
+| tree/show | 第四部分完成，已获用户同意继续 |
+| SVG 文件读写、缺 id 补齐、示例 | 第五部分完成，368 项总测试验证通过，等待用户审阅 |
 | 最终验收、远程提交、final 标签 | 第六部分计划 |
 
 ### 2. 计划中的验证手段
 
 - 编译期：strict、noUncheckedIndexedAccess、exactOptionalPropertyTypes 等检查，构建与源码运行分别验证。
-- 已使用 Vitest 验证模型、分词、命令、历史、显示格式和查询隔离，并回放交付示例；源码及测试分别通过严格类型检查。文件与完整案例验收留到后续阶段。
+- 已使用 Vitest 验证模型、分词、命令、历史、显示、文件及完整案例，并加入真实 CLI 子进程回归；源码及测试分别通过严格类型检查。最终归档和提交检查留到第六部分。
 - 单元验证：六种几何、属性白名单、唯一 id、嵌套结构、环检测、顺序保持。
 - 历史验证：每种编辑命令一个撤销单元、redo 分叉、失败状态不变、I/O 屏障。
 - 集成验证：真实 CLI 输入输出、带空格文本、颜色与注释、作业案例脚本。
@@ -353,3 +398,39 @@ help 已补齐十七条可用命令、六种 create 参数、set 白名单、分
 | 真实 CLI 回放 | UTF-8 stage4.txt 经 stdin 输入 node dist/main.js，通过，树字符及中文正常，EOF 退出码 0 |
 | 架构自查 | 应用层通过端口依赖显示，domain 不依赖显示；无新增按图形类型名分派，类名与文件名一致 |
 | 未包含范围 | SVG 文件读写、最终归档/远程推送仍待后续；VS Code 界面快捷键未验证 |
+
+### 8. 第五部分检查记录（2026-10-25）
+
+| 检查 | 结果与边界 |
+| --- | --- |
+| `npm run check` | 通过：源码与测试严格类型检查、构建、14 个测试文件共 368 项测试 |
+| XML 往返 | 六类、嵌套顺序、几何、显式/省略样式、文本/CDATA、空白、Unicode、viewBox 均通过 |
+| id 规则 | 全量预留、前序补全、后置碰撞、跨标签占名、空 id、大小写、显式重复拒绝均通过 |
+| 非法/不支持输入 | 严格 XML、未知实体、非法字符/编码、重复属性、非 SVG 根、额外属性、变换等均拒绝 |
+| 真实文件失败 | 缺文件、目录读写、缺父目录、坏 XML/重复 id/不支持属性、保存序列化失败均保留文档、路径和历史 |
+| 保存完整性 | 同目录临时文件替换；失败清理验证、原文件不截断、Save As 与无参数路径验证通过 |
+| 历史屏障 | 真正 read/save 成功清空双栈，失败不清空；新编辑重新建立历史 |
+| PJ 典型会话 | 分组、修改、撤销重做、失败分组、删除恢复、保存 5 元素、读入原 other.svg 为 7 元素均通过 |
+| PJ 流程图 | 八元素，两节点内容、容器移动/撤销、文本修改、保存/重读语义一致 |
+| `npm run demo:svg` | 通过；3 条预期错误、1 条补 id 警告，生成 8 元素 flowchart.svg 和 7 元素 imported.svg |
+| 真实 CLI 回放/EOF | 修复后完整 stage5 脚本处理到最后一次 save，退出码 0；子进程回归也覆盖无末尾换行 |
+| 视觉检查 | 本地渲染 800×600 PNG，两个彩色矩形、黑色连线、中文文本正常；浏览器自动预览未验证 |
+| 提交边界 | 本地分阶段提交；最终审计、打包、远程仓库和 final 标签尚待第六部分 |
+
+### 9. 功能完整性验收矩阵（第五部分）
+
+| PJ 要求 | 实现与依据 | 状态 |
+| --- | --- | --- |
+| init/read/save/canvas | Init/Read/Save/CanvasCommand，DocumentCommands、SvgFiles、HistoryManager 测试 | 已实现 |
+| 六类 create、显式 id、in | ShapeFactory、CreateCommand，ShapeFactory/CommandWorkflow 测试 | 已实现 |
+| move/scale/set、叶子与容器统一操作 | Shape/GeometryShape/Group、十类编辑命令，Shape/CommandWorkflow 测试 | 已实现 |
+| delete/group/ungroup/addto/front/back | SvgDocument 树约束与命令包装，SvgDocument/CommandWorkflow 测试 | 已实现 |
+| tree/show/help | 查询端口、显示访问者、帮助，DocumentPresenter/QueryWorkflow 测试 | 已实现 |
+| undo/redo、分叉、IO 屏障 | EditCommand/HistoryManager，HistoryManager/DocumentCommands/SvgFiles 测试 | 已实现 |
+| REPL、引号、注释、统一错误、EOF | Tokenizer/Repl/CommandExecutor，Tokenizer/CliProcess 测试 | 已实现 |
+| 缺 id 补全与警告、标准 SVG 输出 | SvgIdAllocator/SvgCodec，SvgCodec/SvgFiles 测试及生成文件 | 已实现 |
+| TypeScript/OOP/Command/一类一文件/两处分派 | 生产代码类层次、端口和工厂；逐阶段 import/分派/命名自查 | 已落实，最终再审 |
+| 架构/AI 过程/一致性/质量文档 | 本 doc/README.md，含 PlantUML 组件图和各阶段真实记录 | 已持续更新 |
+| Git 分步开发历史 | 已有各阶段代码与文档提交；禁止最终一次性补造历史 | 本地执行中 |
+| 远程推送、截止前 final 标签 | 按用户要求待全部完成后处理；尚未提供远程地址/截止时间 | 待第六部分 |
+| box 插件 | PJ 明确属于后续阶段；当前按未知类型报错 | 正确排除 |

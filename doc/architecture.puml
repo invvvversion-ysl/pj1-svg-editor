@@ -1,5 +1,5 @@
 @startuml
-title PJ1 Phase 1 — current core and planned adapters
+title PJ1 Phase 1 — implemented modules
 skinparam componentStyle rectangle
 component "main / EditorApplication\ncomposition root" as Main
 component "cli\nREPL / tokenizer / registry" as Cli
@@ -25,7 +25,7 @@ end note
 note bottom of App
   Current: commands / session / history.
   Current: DocumentPresenter output port.
-  Planned: file ports, with adapters
-  injected in the composition root.
+  Current: DocumentRepository file port.
+  Adapters are injected in the composition root.
 end note
 @enduml
