@@ -4,11 +4,11 @@ TypeScript 面向对象课程项目。完整架构、AI 协作记录和验收状
 
 ## 当前状态
 
-第五部分：SVG 文件读写已完成，PJ 要求的 19 条命令均已接入。当前命令：`init`、`read`、`save`、`canvas`、`create`（含 `in`）、`delete`、`move`、`scale`、`set`、`group`、`ungroup`、`addto`、`front`、`back`、`tree [id]`、`show <id>`、`undo`、`redo`、`help`。
+最终版本：PJ 要求的 19 条命令均已接入。当前命令：`init`、`read`、`save`、`canvas`、`create`（含 `in`）、`delete`、`move`、`scale`、`set`、`group`、`ungroup`、`addto`、`front`、`back`、`tree [id]`、`show <id>`、`undo`、`redo`、`help`。提交步骤见 [doc/SUBMISSION.md](doc/SUBMISSION.md)。
 
 read 在解析、id 和模型校验全部成功后替换文档，缺 id 时自动补全并警告；save 无参数时使用最近读取/保存的路径。成功的文档操作清空历史并建立屏障，失败保留文档、路径和历史。支持的 SVG 子集与规范化规则见下文及 doc/README.md。
 
-整个工程集中在本目录 `svg-editor/`：源码、文档、测试、示例、配置、锁文件和本地 Git 历史均在其中。依赖通过 npm 安装，无需外部 work 目录中的文件。按用户要求，完成全部阶段后再配置和推送远程仓库。
+整个工程集中在本目录 `svg-editor/`：源码、文档、测试、示例、配置、锁文件和本地 Git 历史均在其中。依赖通过 npm 安装，无需外部 work 目录中的文件。远程目标为用户确认的私有仓库 `invvvversion-ysl/pj1-svg-editor`；实际上传状态见最终现场核验记录 `release/DELIVERY.md`。
 
 ## 在 VS Code 中运行
 
@@ -33,7 +33,8 @@ npm run demo:model  # 运行六种类型、递归变换、分组和错误原子�
 npm run demo:commands # 回放第三部分的编辑与撤销重做命令示例
 npm run demo:views  # 回放第四部分的结构树、属性显示和查询历史示例
 npm run demo:svg    # 回放 PJ 流程图、SVG 保存/读取及缺 id 示例
-npm run check       # 源码及测试类型检查 + 构建 + 全部测试
+npm run check       # 架构扫描 + 源码及测试类型检查 + 构建 + 全部测试
+npm run package     # 干净工作区且 final 指向 HEAD 时，生成源码 ZIP 与 Git 历史备份
 ```
 
 VS Code“终端 → 运行任务”另提供“演示 SVG 文件读写”；F5 启动 CLI。当前 14 个测试文件共 368 项测试通过，涵盖之前全部功能，以及 SVG 往返、真实文件失败恢复、PJ 会话和异步 IO/EOF 回归。
@@ -42,7 +43,7 @@ VS Code“终端 → 运行任务”另提供“演示 SVG 文件读写”；F5 
 
 ## 分阶段审阅
 
-每部分完成后停止，用户审阅通过后继续。前四部分已获用户同意继续，当前待审阅第五部分。尚未配置远程仓库，也未打最终 `final` 标签；最终验收与打包留到第六部分。
+各阶段均在用户确认后继续；用户现已授权最终验收、打包并创建私有 GitHub 仓库。保留真实分阶段提交，最终提交使用带注释的 `final` 标签。以下为第五部分的功能审阅入口，最终交付检查见 doc/README.md 第六部分记录。
 
 本次可检查：
 
@@ -76,4 +77,4 @@ save 后的 undo 应报告 `error: undo not allowed after io command`。read 后
 - 缺失/空 id 自动补齐，先预留全部显式 id 避免撞名。显式重复或非法 id 报错；读取失败不打印部分补 id 警告。
 - 不支持的 path/tspan/transform/CSS/style/font-size、额外根属性、其他长度单位、DTD/外部样式声明等明确拒绝。注释不保留；支持范围内保证结构、顺序、几何、样式、文本的语义往返，不承诺保留原始排版。
 
-VS Code 界面快捷键仍需用户本机确认。第五部分通过后再做最终一致性审计、归档、远程仓库及 final 标签，当前不提前完成这些提交步骤。
+VS Code 界面快捷键仍需用户本机确认。运行 `npm run package` 后，release/ 提供单根目录源码 ZIP、Git 历史 bundle、SHA-256 校验和及提交清单。私有仓库需给教师/助教访问权限；截止时间和课程提交入口请按课程通知确认。

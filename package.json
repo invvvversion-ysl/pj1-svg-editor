@@ -17,7 +17,9 @@
     "demo:commands": "npm run build && node examples/CommandDemo.mjs",
     "demo:views": "npm run build && node examples/ViewDemo.mjs",
     "demo:svg": "npm run build && node examples/SvgDemo.mjs",
-    "check": "npm run typecheck && npm test"
+    "audit:architecture": "node scripts/ArchitectureAudit.mjs",
+    "package": "node scripts/ReleasePackager.mjs",
+    "check": "npm run audit:architecture && npm run typecheck && npm test"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

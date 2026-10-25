@@ -1,7 +1,7 @@
 export class HelpText {
   lines(): readonly string[] {
     return [
-      "PJ1 Phase 1 — stage 5: CLI editing, history, views and SVG files",
+      "svg-editor 0.1 — CLI SVG editor (PJ1 Phase 1)",
       "Blank lines and lines starting with # are ignored.",
       'Use double quotes for spaces or empty values; inside quotes, \\" and \\\\ escape quotes and backslashes.',
       "Exit using terminal EOF (Windows: Ctrl+Z, then Enter).",

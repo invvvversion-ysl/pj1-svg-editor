@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 tests/.tmp/
+release/
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
