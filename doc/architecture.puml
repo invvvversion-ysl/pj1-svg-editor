@@ -1,7 +1,7 @@
 @startuml
-title PJ1 Phase 1 — planned component dependencies
+title PJ1 Phase 1 — current core and planned adapters
 skinparam componentStyle rectangle
-component "main\ncomposition root" as Main
+component "main / EditorApplication\ncomposition root" as Main
 component "cli\nREPL / tokenizer / registry" as Cli
 component "application\ncommands / session / history / ports" as App
 component "domain\ndocument / shape composite / factory" as Domain
@@ -11,6 +11,7 @@ Main --> Cli
 Main --> App
 Main --> Presentation
 Main --> Infra
+Main --> Domain : inject ShapeFactory
 Cli --> App
 App --> Domain
 Presentation --> Domain
@@ -22,7 +23,8 @@ note bottom of Domain
   application or infrastructure imports.
 end note
 note bottom of App
-  Commands use output/file interfaces.
-  Concrete adapters are injected in main.
+  Current: commands / session / history.
+  Planned: output/file ports, with adapters
+  injected in the composition root.
 end note
 @enduml

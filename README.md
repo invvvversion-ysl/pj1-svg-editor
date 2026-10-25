@@ -4,9 +4,11 @@ TypeScript 面向对象课程项目。完整架构、AI 协作记录和验收状
 
 ## 当前状态
 
-第二部分：六种图形和文档模型已实现，包括嵌套变换、属性白名单、唯一 id、分组/解组、归属与顺序调整、子树删除和深复制。可用演示脚本和测试审阅。
+第三部分：模型已接入 CLI，编辑命令和撤销重做可用。当前命令：`init`、`canvas`、`create`（含 `in`）、`delete`、`move`、`scale`、`set`、`group`、`ungroup`、`addto`、`front`、`back`、`undo`、`redo`、`help`。
 
-CLI 当前仍只提供 `help`、空行/注释处理及错误反馈；模型操作尚未接入 CLI。编辑命令和撤销重做在第三部分实现，SVG 文件读写在第五部分实现。
+支持双引号文本、空字符串和整行注释。失败不修改文档或历史；成功的新编辑清空 redo；成功的 init/canvas 尺寸修改建立历史屏障。`tree/show` 留到第四部分，SVG 文件读写留到第五部分。
+
+整个工程集中在本目录 `svg-editor/`：源码、文档、测试、示例、配置、锁文件和本地 Git 历史均在其中。依赖通过 npm 安装，无需外部 work 目录中的文件。按用户要求，完成全部阶段后再配置和推送远程仓库。
 
 ## 在 VS Code 中运行
 
@@ -28,21 +30,36 @@ npm run build       # 编译到 dist/
 npm start           # 运行已编译版本
 npm test            # Vitest 模型行为测试
 npm run demo:model  # 运行六种类型、递归变换、分组和错误原子性演示
+npm run demo:commands # 回放第三部分的编辑与撤销重做命令示例
 npm run check       # 源码及测试类型检查 + 构建 + 全部测试
 ```
 
-VS Code“终端 → 运行任务”还提供“测试领域模型”和“演示领域模型”；F5 仍启动 CLI。测试包括数值边界、嵌套组、重复 id、防环、结构顺序、失败状态不变及快照隔离。
+VS Code“终端 → 运行任务”提供“运行全部测试”“演示领域模型”“演示编辑与撤销重做”；F5 启动 CLI。当前 7 个测试文件共 242 项测试通过，覆盖模型、分词、命令、历史和示例回放。
+
+输入约定：只有行首（允许前导空白）的 # 才是注释，颜色 #4a90d9 可以直接作为参数。双引号内用 `\"` 和 `\\` 表示引号和反斜杠，其他反斜杠保留，因此 Windows 路径中的 `\t` 不会变为制表符。init 缺省宽高分别为 800/600；canvas 无参查询，修改时必须同时提供宽高。
 
 ## 分阶段审阅
 
-每部分完成后停止，用户审阅通过后继续。第一部分已获用户同意继续，当前待审阅第二部分。尚未建立远程仓库，也未打最终 `final` 标签。
+每部分完成后停止，用户审阅通过后继续。前两部分已获用户同意继续，当前待审阅第三部分。尚未配置远程仓库，也未打最终 `final` 标签。
 
 本次可检查：
 
-1. 阅读 `doc/README.md` 的“第二部分模型实现说明”，重点检查类层次与结构操作的规则。
-2. 在 VS Code 终端运行 `npm.cmd run demo:model`。应看到矩形位置从 (10,20) 变为 (20,15)、宽高变为 50×25；原快照 x 仍为 10。
-3. 检查演示中的分组顺序为 dot、oval，以及错误后 `Document unchanged after error: true`。
-4. 执行 `npm.cmd run check`，检查类型、构建和全部模型测试。
-5. 源码阅读入口：`src/domain/shapes/Shape.ts`、`GeometryShape.ts`、`Group.ts`、`src/domain/SvgDocument.ts`；测试位于 `tests/unit/`。
+1. 阅读 `doc/README.md` 的“第三部分命令与历史实现说明”。
+2. 在 VS Code 终端运行 `npm.cmd run demo:commands`。示例会刻意触发五条错误，最终 r1 为位置 (21,15)、尺寸 50×25；标题为空，画布 640×480，共 7 个元素。
+3. 执行 `npm.cmd run cli`，手动输入下面的最小会话，或查看 `examples/stage3.txt` 的完整命令。
+4. 执行 `npm.cmd run check`，检查类型、构建和全部测试。
+5. 源码阅读入口：`src/application/commands/EditCommand.ts`、`src/application/HistoryManager.ts`、`src/EditorApplication.ts`；命令流程测试位于 `tests/integration/`。
 
-`init/create/move` 等 CLI 命令此时尚未注册，会报告未知命令。审阅通过后，第三部分将连接命令、编辑器会话和撤销重做。VS Code 可见窗口及快捷键仍需用户本机确认。
+```text
+init
+create rect r1 10 20 100 50 #4a90d9
+move r1 30 0
+undo
+redo
+canvas 400 300
+undo
+```
+
+最后一次 undo 应输出 `error: undo not allowed after io command`。此后成功执行一条编辑命令，即可撤销该条新编辑。`undo` 的反馈以 `undone:` 标记被撤销的原操作，`redo` 输出恢复的原操作摘要。
+
+当前 `tree/show/read/save` 尚未注册，使用它们会报告未知命令。审阅通过后再开始第四部分的结构显示。VS Code 界面操作及快捷键仍需用户本机确认；后台终端运行与编译验证已完成。
