@@ -5,17 +5,20 @@
   "description": "PJ1 Phase 1: an object-oriented SVG command-line editor",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
   },
   "scripts": {
     "cli": "npm run build && node dist/main.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
     "build": "tsc",
     "start": "node dist/main.js",
-    "check": "npm run typecheck && npm run build"
+    "test": "vitest run --pool=threads --maxWorkers=1 --no-file-parallelism",
+    "demo:model": "npm run build && node examples/ModelDemo.mjs",
+    "check": "npm run typecheck && npm run build && npm test"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   }
 }
