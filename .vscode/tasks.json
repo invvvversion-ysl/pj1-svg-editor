@@ -9,7 +9,7 @@
       "group": "none"
     },
     {
-      "label": "测试领域模型",
+      "label": "运行全部测试",
       "type": "npm",
       "script": "test",
       "problemMatcher": [],
@@ -19,6 +19,12 @@
       "label": "演示领域模型",
       "type": "npm",
       "script": "demo:model",
+      "problemMatcher": []
+    },
+    {
+      "label": "演示编辑与撤销重做",
+      "type": "npm",
+      "script": "demo:commands",
       "problemMatcher": []
     },
     {

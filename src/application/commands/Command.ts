@@ -1,4 +1,4 @@
-/** A command invoked by the CLI; editing/history contracts are added in stage 3. */
+/** A command invocation. EditCommand adds the reversible execution contract. */
 export interface Command {
   execute(args: readonly string[]): readonly string[] | Promise<readonly string[]>;
 }

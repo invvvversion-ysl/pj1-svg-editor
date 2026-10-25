@@ -1,0 +1,49 @@
+# Stage 3: editing and history. Five error responses below are intentional.
+init 800 600
+undo
+
+# Build all six types, including a nested node with text.
+create g scene
+create g node in scene
+create rect r1 10 20 100 50 #4a90d9 in node
+create text title 20 50 "开始 Start" in node
+create circle c1 200 100 20 red in scene
+create ellipse e1 300 100 30 15 in scene
+create line edge 110 45 180 100 black in scene
+
+# Transform and undo/redo the entire node as one unit.
+move node 30 10
+scale node 0.5
+undo
+redo
+set title text "处理数据 v2"
+undo
+redo
+
+# Group in document order, reparent, reorder, ungroup, and restore deleted subtrees.
+group markers e1 c1
+addto markers edge
+front node
+back node
+ungroup markers
+undo
+redo
+delete node
+undo
+
+# Invalid edits leave state and history unchanged.
+group bad node r1
+scale r1 0
+canvas
+move r1 5 0
+undo
+set title text ""
+redo
+
+# Canvas resize starts a new history boundary.
+canvas 640 480
+undo
+move r1 1 0
+undo
+redo
+canvas

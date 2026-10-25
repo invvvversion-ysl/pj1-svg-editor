@@ -29,7 +29,7 @@ export class Repl {
           if (!(error instanceof CommandError)) {
             throw error;
           }
-          stdout.write(`error: ${error.message}\n`);
+          stdout.write(`error: ${error.message.replace(/[\r\n\u2028\u2029]/gu, " ")}\n`);
         }
         terminal.prompt();
       }

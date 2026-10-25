@@ -14,6 +14,7 @@
     "start": "node dist/main.js",
     "test": "vitest run --pool=threads --maxWorkers=1 --no-file-parallelism",
     "demo:model": "npm run build && node examples/ModelDemo.mjs",
+    "demo:commands": "npm run build && node examples/CommandDemo.mjs",
     "check": "npm run typecheck && npm run build && npm test"
   },
   "devDependencies": {
