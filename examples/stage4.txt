@@ -1,0 +1,26 @@
+# Stage 4: tree/show formatting and queries preserving redo.
+init 800 600
+create rect bg 0 0 800 600 #ffffff
+create text title 20 40 "My Diagram"
+create g markers
+create circle c1 100 100 20 red in markers
+create g details in markers
+create ellipse e1 200 80 30 15 in details
+create line l1 100 100 200 80 black in details
+create rect box 200 80 60 60 #3366ff in markers
+set markers stroke black
+set markers stroke-width 2
+tree
+tree details
+show c1
+show markers
+show title
+move c1 30 0
+undo
+tree markers
+show c1
+redo
+show c1
+set title text ""
+show title
+tree title

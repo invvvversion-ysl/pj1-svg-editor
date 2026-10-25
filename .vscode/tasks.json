@@ -28,6 +28,12 @@
       "problemMatcher": []
     },
     {
+      "label": "演示结构树与属性",
+      "type": "npm",
+      "script": "demo:views",
+      "problemMatcher": []
+    },
+    {
       "label": "构建 SVG 编辑器",
       "type": "npm",
       "script": "build",

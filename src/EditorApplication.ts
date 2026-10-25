@@ -13,6 +13,8 @@ import { MoveCommand } from "./application/commands/MoveCommand.js";
 import { RedoCommand } from "./application/commands/RedoCommand.js";
 import { ScaleCommand } from "./application/commands/ScaleCommand.js";
 import { SetAttributeCommand } from "./application/commands/SetAttributeCommand.js";
+import { ShowCommand } from "./application/commands/ShowCommand.js";
+import { TreeCommand } from "./application/commands/TreeCommand.js";
 import { UndoCommand } from "./application/commands/UndoCommand.js";
 import { UngroupCommand } from "./application/commands/UngroupCommand.js";
 import { CommandRegistry } from "./cli/CommandRegistry.js";
@@ -20,6 +22,7 @@ import { Repl } from "./cli/Repl.js";
 import { ShapeFactory } from "./domain/ShapeFactory.js";
 import type { SvgDocument } from "./domain/SvgDocument.js";
 import { HelpText } from "./presentation/HelpText.js";
+import { TextDocumentPresenter } from "./presentation/TextDocumentPresenter.js";
 
 /** Composition root shared by the REPL, command demo and integration tests. */
 export class EditorApplication {
@@ -29,9 +32,12 @@ export class EditorApplication {
 
   constructor() {
     const factory = new ShapeFactory();
+    const presenter = new TextDocumentPresenter();
     this.registry.register("help", () => new HelpCommand(new HelpText().lines()));
     this.registry.register("init", () => new InitCommand(this.session, this.history));
     this.registry.register("canvas", () => new CanvasCommand(this.session, this.history));
+    this.registry.register("tree", () => new TreeCommand(this.session, presenter));
+    this.registry.register("show", () => new ShowCommand(this.session, presenter));
     this.registry.register("create", () => new CreateCommand(this.history, factory));
     this.registry.register("delete", () => new DeleteCommand(this.history));
     this.registry.register("move", () => new MoveCommand(this.history));

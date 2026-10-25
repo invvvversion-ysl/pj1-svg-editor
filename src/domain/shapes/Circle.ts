@@ -1,4 +1,5 @@
 import { ShapeArguments } from "../ShapeArguments.js";
+import type { ShapeVisitor } from "../ShapeVisitor.js";
 import { GeometryShape } from "./GeometryShape.js";
 
 export class Circle extends GeometryShape {
@@ -8,6 +9,7 @@ export class Circle extends GeometryShape {
   }
 
   override get type(): string { return "circle"; }
+  override accept<T>(visitor: ShapeVisitor<T>): T { return visitor.visitCircle(this); }
 
   static fromArguments(id: string, values: readonly string[]): Circle {
     const args = new ShapeArguments(values, "circle <id> <cx> <cy> <r> [fill]", 3, 4);

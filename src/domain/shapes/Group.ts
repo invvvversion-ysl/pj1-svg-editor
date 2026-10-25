@@ -1,5 +1,6 @@
 import { DomainError } from "../DomainError.js";
 import { ShapeArguments } from "../ShapeArguments.js";
+import type { ShapeVisitor } from "../ShapeVisitor.js";
 import { Shape } from "./Shape.js";
 
 export class Group extends Shape {
@@ -17,6 +18,7 @@ export class Group extends Shape {
   }
 
   override get type(): string { return "g"; }
+  override accept<T>(visitor: ShapeVisitor<T>): T { return visitor.visitGroup(this); }
   override get isContainer(): boolean { return true; }
   override get children(): readonly Shape[] { return [...this.childNodes]; }
   override asGroup(): Group { return this; }

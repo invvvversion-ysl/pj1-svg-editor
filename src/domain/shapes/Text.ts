@@ -1,4 +1,5 @@
 import { ShapeArguments } from "../ShapeArguments.js";
+import type { ShapeVisitor } from "../ShapeVisitor.js";
 import { GeometryShape } from "./GeometryShape.js";
 
 export class Text extends GeometryShape {
@@ -7,6 +8,7 @@ export class Text extends GeometryShape {
   }
 
   override get type(): string { return "text"; }
+  override accept<T>(visitor: ShapeVisitor<T>): T { return visitor.visitText(this); }
   override get textContent(): string { return this.content; }
 
   static fromArguments(id: string, values: readonly string[]): Text {

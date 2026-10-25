@@ -1,6 +1,7 @@
 import { DomainError } from "../DomainError.js";
 import { NumericValue } from "../NumericValue.js";
 import type { SvgElement } from "../SvgElement.js";
+import type { ShapeVisitor } from "../ShapeVisitor.js";
 import type { Group } from "./Group.js";
 
 export abstract class Shape {
@@ -73,6 +74,7 @@ export abstract class Shape {
   }
 
   abstract clone(): Shape;
+  abstract accept<T>(visitor: ShapeVisitor<T>): T;
 
   protected copyStyleTo<T extends Shape>(target: T): T {
     for (const [name, value] of this.style) target.setAttribute(name, value);

@@ -205,7 +205,7 @@ describe("initial CLI state and create types", () => {
 
   it("allows help before init and ignores blank lines/comments", async () => {
     const app = new EditorApplication();
-    expect((await app.execute("help")).join("\n")).toContain("stage 3");
+    expect((await app.execute("help")).join("\n")).toContain("stage 4");
     expect(await app.execute("  ")).toEqual([]);
     expect(await app.execute("# comment")).toEqual([]);
   });

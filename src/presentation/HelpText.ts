@@ -1,7 +1,7 @@
 export class HelpText {
   lines(): readonly string[] {
     return [
-      "PJ1 Phase 1 — stage 3: editing commands and undo/redo",
+      "PJ1 Phase 1 — stage 4: CLI editing, history and document views",
       "Blank lines and lines starting with # are ignored.",
       'Use double quotes for spaces or empty values; inside quotes, \\" and \\\\ escape quotes and backslashes.',
       "Exit using terminal EOF (Windows: Ctrl+Z, then Enter).",
@@ -12,7 +12,7 @@ export class HelpText {
       "  delete <id> | move <id> <dx> <dy> | scale <id> <factor>",
       "  set <id> <attr> <value> | group <newGid> <id1> <id2>...",
       "  ungroup <gid> | addto <gid> <id> | front <id> | back <id>",
-      "  undo | redo",
+      "  tree [id] | show <id> | undo | redo",
       "Create parameters:",
       "  rect <id> <x> <y> <w> <h> [fill]",
       "  circle <id> <cx> <cy> <r> [fill]",
@@ -20,8 +20,20 @@ export class HelpText {
       "  line <id> <x1> <y1> <x2> <y2> [stroke]",
       '  text <id> <x> <y> "content"',
       "  g <id>",
+      "All create types accept an optional trailing in <containerId>; ids are unique and case-sensitive.",
+      "Set attributes:",
+      "  all types: fill, stroke, stroke-width",
+      "  rect: x, y, width, height | circle: cx, cy, r | ellipse: cx, cy, rx, ry",
+      "  line: x1, y1, x2, y2 | text: x, y, text | g: common attributes only",
+      "move uses relative dx/dy; scale multiplies positions and sizes about the SVG origin.",
+      "group keeps document order; addto appends; front/back reorder within the same parent.",
+      "ungroup rejects top-level containers. tree shows a document/subtree; show lists one shape and its parent.",
+      "Omitted fill/stroke remain absent and follow SVG defaults. Queries show explicit attributes.",
       "Successful init/canvas resize clear history; undo/redo stay blocked until a successful edit.",
-      "Planned: tree [id], show <id> (stage 4); read <file.svg>, save [file.svg] (stage 5).",
+      "One edit is one undo unit. A successful edit after undo clears redo; queries and failures preserve it.",
+      "init defaults to 800x600; canvas queries with no arguments or resizes with both width and height.",
+      "Planned for stage 5 (not yet available): read <file.svg> | save [file.svg].",
+      "Phase 1 built-ins are limited to rect, circle, ellipse, line, text and g; box is a later-stage type.",
     ];
   }
 }

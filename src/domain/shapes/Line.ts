@@ -1,4 +1,5 @@
 import { ShapeArguments } from "../ShapeArguments.js";
+import type { ShapeVisitor } from "../ShapeVisitor.js";
 import { GeometryShape } from "./GeometryShape.js";
 
 export class Line extends GeometryShape {
@@ -8,6 +9,7 @@ export class Line extends GeometryShape {
   }
 
   override get type(): string { return "line"; }
+  override accept<T>(visitor: ShapeVisitor<T>): T { return visitor.visitLine(this); }
 
   static fromArguments(id: string, values: readonly string[]): Line {
     const args = new ShapeArguments(values, "line <id> <x1> <y1> <x2> <y2> [stroke]", 4, 5);
