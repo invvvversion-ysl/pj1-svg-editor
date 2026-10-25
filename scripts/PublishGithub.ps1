@@ -42,7 +42,9 @@ try {
     $taskRepo = ($taskRepoJson -join "`n") | ConvertFrom-Json
     if (-not $taskRepo.private -or $taskRepo.full_name -cne $taskRepository) { throw 'Repository identity/privacy check failed.' }
     if ($taskRemotes -notcontains 'origin') { Invoke-TaskGit -Arguments @('remote', 'add', 'origin', $taskUrl) }
-    $taskHelper = '!"' + $taskGh.Replace('\','/') + '" auth git-credential'
+    # Preserve shell quoting through Windows PowerShell 5.1 native argument passing.
+    $taskShellPath = $taskGh.Replace('\','/').Replace("'", "'\''")
+    $taskHelper = "!'" + $taskShellPath + "' auth git-credential"
     Invoke-TaskGit -Arguments @('-c', 'credential.helper=', '-c', "credential.helper=$taskHelper", 'push', '--atomic', '-u', 'origin', 'main', 'refs/tags/final')
     $taskRefs = @(Invoke-TaskGit -Arguments @('-c', 'credential.helper=', '-c', "credential.helper=$taskHelper", 'ls-remote', 'origin', 'refs/heads/main', 'refs/tags/final^{}'))
     foreach ($taskRef in @('refs/heads/main', 'refs/tags/final^{}')) {
